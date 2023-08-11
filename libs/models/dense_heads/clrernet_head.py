@@ -343,7 +343,7 @@ class CLRerHead(nn.Module):
             False
         """
         lengths = torch.round(lengths * self.n_strips)
-        # pred = self.predictions_to_lanes(xs, anchor_params, lengths, scores, as_lanes)
+        pred = self.predictions_to_lanes(xs, anchor_params, lengths, scores, as_lanes)
         """
         len(lanes): 9
 
@@ -401,7 +401,7 @@ class CLRerHead(nn.Module):
         lengths.shape
             torch.Size([9, 1])
         scores.shape
-            torch.Size([9])
+            torch.Size([9, 1])
         as_lanes
             False
         """

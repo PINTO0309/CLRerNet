@@ -18,10 +18,10 @@ SHELL ["/bin/bash", "-c"]
 # packages
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    sudo git zip curl nano \
+    sudo git zip curl nano libgtk2.0-dev \
     libopencv-dev libffi-dev liblapack-dev libsqlite3-dev \
     build-essential libssl-dev libbz2-dev libreadline-dev \
-    ssh-client wget vim python3-opencv &&\
+    ssh-client wget vim &&\
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # user setting
@@ -76,7 +76,8 @@ RUN pip install -r /tmp/requirements.txt
 RUN pip install pip -U \
     && pip install onnx==${ONNX_VERSION} \
     && pip install onnxruntime==${ONNXRUNTIME_VERSION} \
-    && pip install onnxsim==${ONNXSIM_VERSION}
+    && pip install onnxsim==${ONNXSIM_VERSION} \
+    && pip install opencv-contrib-python==4.8.0.76
 
 # lane NMS
 COPY --chown=${USERNAME} libs/models/layers/nms /tmp/nms

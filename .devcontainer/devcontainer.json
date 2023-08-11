@@ -1,10 +1,10 @@
 {
     "name": "Python",
-    "build": {
-        "dockerfile": "../docker/Dockerfile",
-        "context": ".."
-    },
-    // "image": "docker.io/pinto0309/clrernet:latest",
+    // "build": {
+    //     "dockerfile": "../docker/Dockerfile",
+    //     "context": ".."
+    // },
+    "image": "docker.io/pinto0309/clrernet:latest",
 
     // Configure tool-specific properties.
     "customizations": {
