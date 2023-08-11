@@ -1,0 +1,73 @@
+{
+    "name": "Python",
+    "build": {
+        "dockerfile": "../docker/Dockerfile",
+        "context": ".."
+    },
+    // "image": "docker.io/pinto0309/clrernet:latest",
+
+    // Configure tool-specific properties.
+    "customizations": {
+        // Configure properties specific to VS Code.
+        "vscode": {
+            // Set *default* container specific settings.json values on container create.
+            // "settings": {
+            //     "python.defaultInterpreterPath": "/usr/local/bin/python",
+            //     "python.linting.enabled": true,
+            //     "python.linting.pylintEnabled": true,
+            //     "python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
+            //     "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+            //     "python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+            //     "python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
+            //     "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+            //     "python.linting.mypyPath": "/usr/local/py-utils/bin/mypy",
+            //     "python.linting.pycodestylePath": "/usr/local/py-utils/bin/pycodestyle",
+            //     "python.linting.pydocstylePath": "/usr/local/py-utils/bin/pydocstyle",
+            //     "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint"
+            // },
+
+            // Add the IDs of extensions you want installed when the container is created.
+            "extensions": [
+                "ms-vscode.cpptools",
+                "ms-vscode.cpptools-extension-pack",
+                "usernamehw.errorlens",
+                "MS-CEINTL.vscode-language-pack-ja",
+                "ms-python.vscode-pylance",
+                "ms-python.python",
+                "nonanonno.vscode-ros2",
+                "deitry.colcon-helper",
+                "redhat.vscode-yaml",
+                "docsmsft.docs-yaml",
+                "twxs.cmake",
+                "josetr.cmake-language-support-vscode",
+                "TqrHsn.vscode-docker-registry-explorer",
+                "vscjava.vscode-java-debug",
+                "vscjava.vscode-java-pack",
+                "vscjava.vscode-maven",
+                "redhat.java",
+                "ms-vscode.PowerShell",
+                "TylerLeonhardt.vscode-inline-values-powershell",
+                "oderwat.indent-rainbow",
+                "mosapride.zenkaku",
+                "ms-dotnettools.csharp",
+                "ms-dotnettools.csdevkit",
+                "kreativ-software.csharpextensions",
+                "ryu1kn.partial-diff",
+                "ionutvmi.path-autocomplete",
+                "mechatroner.rainbow-csv"
+            ]
+        }
+    },
+
+    "remoteUser": "user",
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {}
+    },
+
+    "runArgs": [
+        "--gpus", "all",
+        "--shm-size", "64gb",
+        "--device", "/dev/video0:/dev/video0:mwr",
+        "--privileged"
+    ]
+}

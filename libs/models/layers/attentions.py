@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from mmcv.cnn import ConvModule
-
+import numpy as np
 
 @ATTENTION.register_module()
 class ROIGather(nn.Module):
@@ -113,7 +113,17 @@ class ROIGather(nn.Module):
         # [B * Np, Cin * Ns] -> [B * Np, Ch]
         roi = F.relu(self.fc_norm(self.fc(roi)))
         # [B * Np, Ch] -> [B, Np, Ch]
-        roi = roi.view(bs, self.num_priors, -1)
+        """
+        roi.shape
+            torch.Size([192, 64])
+
+        print(bs, self.num_priors, -1)
+            1 192 -1
+        """
+        # roi = roi.view(bs, self.num_priors, -1)
+        last_dim = np.prod(roi.shape) // self.num_priors
+        print(f'self.num_priors: {self.num_priors}')
+        roi = torch.reshape(roi, shape=[1, self.num_priors, last_dim])
         return roi
 
     def forward(self, roi_features, fmap_pyramid, layer_index):
@@ -242,4 +252,6 @@ class FeatureResize(nn.Module):
             out (torch.Tensor): Resized tensor with shape (B, C, H'W').
         """
         x = F.interpolate(x, self.size)
-        return x.flatten(2)
+        # return x.flatten(2)
+        spartial_size = int(x.shape[2]) * int(x.shape[3])
+        return torch.reshape(x, shape=[1, 64, spartial_size])

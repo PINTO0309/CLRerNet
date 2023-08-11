@@ -34,7 +34,8 @@ model = dict(
         # of the train set. The following value is
         # for CLRerNet w/ DLA34 & EMA model.
         conf_threshold=0.43,
-        use_nms=True,
+        # use_nms=True,
+        use_nms=False,
         as_lanes=True,
         nms_thres=50,
         nms_topk=4,

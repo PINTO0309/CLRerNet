@@ -50,7 +50,138 @@ def inference_one_image(model, img_path):
 
     # forward the model
     with torch.no_grad():
-        results = model(return_loss=False, rescale=True, **data)
+        """
+        'img_metas':
+            [
+                {
+                    'filename': 'demo/demo.jpg',
+                    'sub_img_name': None,
+                    'ori_shape': (590, 1640, 3),
+                    'img_shape': (320, 800, 3),
+                    'img_norm_cfg': {
+                        'mean': array([0., 0., 0.], ...e=float32),
+                        'std': array([255., 255., 255...e=float32),
+                        'to_rgb': False
+                    }
+                }
+            ]
+        'img': torch.Size([1, 3, 320, 800])
+            tensor([[[[0.2196, 0.2196, 0.2196,  ..., 0.2510, 0.2745, 0.2980],
+        """
+        # results = model(return_loss=False, rescale=True, **data)
+
+        import onnx
+        from onnxsim import simplify
+        RESOLUTION = [
+            [320,800],
+            # [192,320],
+            # [192,416],
+            # [192,640],
+            # [192,800],
+            # [256,320],
+            # [256,416],
+            # [256,640],
+            # [256,800],
+            # [256,960],
+            # [288,480],
+            # [288,640],
+            # [288,800],
+            # [288,960],
+            # [288,1280],
+            # [320,320],
+            # [384,480],
+            # [384,640],
+            # [384,800],
+            # [384,960],
+            # [384,1280],
+            # [416,416],
+            # [480,640],
+            # [480,800],
+            # [480,960],
+            # [480,1280],
+            # [512,512],
+            # [544,800],
+            # [544,960],
+            # [544,1280],
+            # [640,640],
+        ]
+        model.cpu()
+        MODEL = f'clrernet_no_nms_no_predictions_to_lanes'
+        for H, W in RESOLUTION:
+            x = torch.nn.functional.interpolate(data['img'], size=(H,W)).cpu()
+            onnx_file = f"{MODEL}_{x.shape[2]}x{x.shape[3]}.onnx"
+            torch.onnx.export(
+                model,
+                args=(x),
+                f=onnx_file,
+                opset_version=16,
+                input_names=['input'],
+                output_names=[
+                    'xs',
+                    'anchor_params',
+                    'lengths',
+                    'scores',
+                ],
+                dynamic_axes={
+                    'xs' : {0: 'N'},
+                    'anchor_params' : {0: 'N'},
+                    'lengths' : {0: 'N'},
+                    'scores' : {0: 'N'},
+                }
+            )
+            model_onnx1 = onnx.load(onnx_file)
+            model_onnx1 = onnx.shape_inference.infer_shapes(model_onnx1)
+            onnx.save(model_onnx1, onnx_file)
+
+            model_onnx2 = onnx.load(onnx_file)
+            model_simp, check = simplify(model_onnx2)
+            onnx.save(model_simp, onnx_file)
+            model_onnx2 = onnx.load(onnx_file)
+            model_simp, check = simplify(model_onnx2)
+            onnx.save(model_simp, onnx_file)
+            model_onnx2 = onnx.load(onnx_file)
+            model_simp, check = simplify(model_onnx2)
+            onnx.save(model_simp, onnx_file)
+
+        onnx_file = f"{MODEL}_HxW.onnx"
+        torch.onnx.export(
+            model,
+            args=(x),
+            f=onnx_file,
+            opset_version=16,
+            input_names=['input'],
+                output_names=[
+                    'xs',
+                    'anchor_params',
+                    'lengths',
+                    'scores',
+                ],
+            dynamic_axes={
+                'input' : {2: 'height', 3: 'width'},
+                'xs' : {0: 'N'},
+                'anchor_params' : {0: 'N'},
+                'lengths' : {0: 'N'},
+                'scores' : {0: 'N'},
+            }
+        )
+        model_onnx1 = onnx.load(onnx_file)
+        model_onnx1 = onnx.shape_inference.infer_shapes(model_onnx1)
+        onnx.save(model_onnx1, onnx_file)
+
+        model_onnx2 = onnx.load(onnx_file)
+        model_simp, check = simplify(model_onnx2)
+        onnx.save(model_simp, onnx_file)
+        model_onnx2 = onnx.load(onnx_file)
+        model_simp, check = simplify(model_onnx2)
+        onnx.save(model_simp, onnx_file)
+        model_onnx2 = onnx.load(onnx_file)
+        model_simp, check = simplify(model_onnx2)
+        onnx.save(model_simp, onnx_file)
+
+        import sys
+        sys.exit(0)
+
+
 
     lanes = results[0]['result']['lanes']
     preds = get_prediction(lanes, ori_shape[0], ori_shape[1])

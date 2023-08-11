@@ -6,3 +6,5 @@ work_dirs
 *.zip
 *.pyc
 .DS_Store
+*.onnx
+*.pth

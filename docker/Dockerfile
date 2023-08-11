@@ -1,20 +1,43 @@
 FROM nvidia/cuda:11.8.0-devel-ubuntu22.04
 
+ARG USERNAME=user
+ENV TORCH_CUDA_ARCH_LIST=8.0;8.6
+ENV DEBIAN_FRONTEND=noninteractive
+ARG PYTHON_VERSION=3.8.4
+ARG TORCH_VERSION=1.12.1+cu116
+ARG TORCHVISION_VERSION=0.13.1
+ARG MIM_VERSION=0.3.3
+ARG MMCV_VERSION=1.7.0
+ARG MMDET_VERSION=2.28.0
+ARG ONNX_VERSION=1.13.1
+ARG ONNXRUNTIME_VERSION=1.15.1
+ARG ONNXSIM_VERSION=0.4.33
+
+SHELL ["/bin/bash", "-c"]
+
 # packages
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    sudo git zip curl \
+    apt-get install -y --no-install-recommends \
+    sudo git zip curl nano \
     libopencv-dev libffi-dev liblapack-dev libsqlite3-dev \
     build-essential libssl-dev libbz2-dev libreadline-dev \
     ssh-client wget vim python3-opencv &&\
     rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/*
 
 # user setting
-ARG UID
-RUN useradd docker -l -u $UID -G sudo -s /bin/bash -m
-RUN echo 'Defaults visiblepw' >> /etc/sudoers
-RUN echo 'docker ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-USER docker
+RUN echo "root:root" | chpasswd \
+    && useradd \
+        --create-home \
+        --home-dir /home/${USERNAME} \
+        --shell /bin/bash \
+        --user-group \
+        --groups adm,sudo \
+        ${USERNAME} \
+    && echo "${USERNAME}:${USERNAME}" | chpasswd \
+    && cat /dev/null > /etc/sudoers.d/${USERNAME} \
+    && echo "%${USERNAME}    ALL=(ALL)   NOPASSWD:    ALL" >> \
+        /etc/sudoers.d/${USERNAME} \
+    && chown -R ${USERNAME}:${USERNAME} /home/${USERNAME}
 
 # python
 ENV PYENV_ROOT /home/docker/.pyenv
@@ -37,10 +60,10 @@ RUN mim install mmcv-full==${MMCV_VERSION}
 
 # mmdet
 ARG MMDET_VERSION
-WORKDIR /home/docker/
+WORKDIR /home/${USERNAME}/
 RUN pip install Cython
 RUN git clone https://github.com/open-mmlab/mmdetection.git mmdetection -b v${MMDET_VERSION} --depth 1
-WORKDIR mmdetection
+WORKDIR /home/${USERNAME}/mmdetection
 ENV FORCE_CUDA="1"
 RUN pip install --no-cache-dir -e .
 
@@ -49,15 +72,21 @@ RUN pip install -U pip setuptools
 COPY requirements.txt /tmp/requirements.txt
 RUN pip install -r /tmp/requirements.txt
 
+# packages
+RUN pip install pip -U \
+    && pip install onnx==${ONNX_VERSION} \
+    && pip install onnxruntime==${ONNXRUNTIME_VERSION} \
+    && pip install onnxsim==${ONNXSIM_VERSION}
+
 # lane NMS
-COPY --chown=docker libs/models/layers/nms /tmp/nms
+COPY --chown=${USERNAME} libs/models/layers/nms /tmp/nms
 WORKDIR /tmp/nms
 RUN python /tmp/nms/setup.py install
 
 # path
-ENV PYTHONPATH $PYTHONPATH:/work
-ENV PYTHONPATH $PYTHONPATH:/home/docker/
+ENV PYTHONPATH=$PYTHONPATH:/work
+ENV PYTHONPATH=$PYTHONPATH:/home/${USERNAME}/
 
 WORKDIR /work
 
-ENTRYPOINT ["/bin/bash"]
+USER ${USERNAME}

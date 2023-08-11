@@ -23,7 +23,8 @@ class CLRerNet(SingleStageDetector):
         """Coming soon.."""
         raise NotImplementedError("Training is not supported yet!")
 
-    def forward_test(self, img, img_metas, **kwargs):
+    # def forward_test(self, img, img_metas, **kwargs):
+    def forward_test(self, img):
         """
         Single-image test without augmentation.
         Args:
@@ -31,17 +32,18 @@ class CLRerNet(SingleStageDetector):
             img_metas (List[dict]): Meta dict containing image information.
         Returns:
             result_dict (List[dict]): Single-image result containing prediction outputs and
-             img_metas as 'result' and 'metas' respectively.
+            img_metas as 'result' and 'metas' respectively.
         """
-        assert (
-            img.shape[0] == 1 and len(img_metas) == 1
-        ), "Only single-image test is supported."
-        img_metas[0]['batch_input_shape'] = tuple(img.size()[-2:])
+        # assert (
+        #     img.shape[0] == 1 and len(img_metas) == 1
+        # ), "Only single-image test is supported."
+        # img_metas[0]['batch_input_shape'] = tuple(img.size()[-2:])
 
         x = self.extract_feat(img)
         output = self.bbox_head.simple_test(x)
-        result_dict = {
-            'result': output,
-            'meta': img_metas[0],
-        }
-        return [result_dict]  # assuming batch size is 1
+        # result_dict = {
+        #     'result': output,
+        #     'meta': img_metas[0],
+        # }
+        # return [result_dict]  # assuming batch size is 1
+        return output

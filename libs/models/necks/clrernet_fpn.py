@@ -87,11 +87,19 @@ class CLRerNetFPN(nn.Module):
 
         # build top-down path
         used_backbone_levels = len(laterals)
+
+        # prev_shapes = [
+        #     (20,50),
+        #     (40,100),
+        # ]
+
         for i in range(used_backbone_levels - 1, 0, -1):
             prev_shape = laterals[i - 1].shape[2:]
-            laterals[i - 1] += F.interpolate(
-                laterals[i], size=prev_shape, mode='nearest'
-            )
+            # laterals[i - 1] += F.interpolate(laterals[i], size=prev_shape, mode='nearest')
+            laterals[i - 1] = laterals[i - 1] + F.interpolate(laterals[i], size=prev_shape, mode='nearest')
+
+        # for i, prev_shape in zip(range(used_backbone_levels - 1, 0, -1), prev_shapes):
+        #     laterals[i - 1] = laterals[i - 1] + F.interpolate(laterals[i], size=prev_shape, mode='nearest')
 
         outs = [self.fpn_convs[i](laterals[i]) for i in range(used_backbone_levels)]
         return tuple(outs)

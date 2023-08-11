@@ -13,7 +13,7 @@ from mmdet.models.builder import HEADS
 from mmcv.cnn.bricks.transformer import build_attention
 from libs.utils.lane_utils import Lane
 from nms import nms
-
+import numpy as np
 
 @HEADS.register_module
 class CLRerHead(nn.Module):
@@ -175,9 +175,26 @@ class CLRerHead(nn.Module):
             fc_features = self.attention(
                 pooled_features_stages, feature_pyramid, stage
             )  # [B, Np, Ch], Ch: fc_hidden_dim
-            fc_features = fc_features.view(self.num_priors, batch_size, -1).reshape(
+
+
+            # fc_features = fc_features.view(self.num_priors, batch_size, -1).reshape(
+            #     batch_size * self.num_priors, self.fc_hidden_dim
+            # )  # [B * Np, Ch]
+            """
+            fc_features.shape
+            torch.Size([1, 192, 64])
+
+            print(self.num_priors, batch_size, -1)
+            192 1 -1
+
+            print(batch_size * self.num_priors, self.fc_hidden_dim)
+            192 64
+            """
+            last_dim = np.prod([dim for dim in fc_features.shape]) // self.num_priors // batch_size
+            fc_features = fc_features.view(self.num_priors, batch_size, last_dim).reshape(
                 batch_size * self.num_priors, self.fc_hidden_dim
             )  # [B * Np, Ch]
+
 
             # 3. cls and reg heads
             cls_features = fc_features.clone()
@@ -256,14 +273,22 @@ class CLRerHead(nn.Module):
         ), "Only single-image prediction is available!"
         # filter out the conf lower than conf threshold
         threshold = self.test_cfg.conf_threshold
+        # scores = softmax(pred_dict["cls_logits"][0])[:, 1]
+        # keep_inds = scores >= threshold
+        # scores = scores[keep_inds]
+        # xs = pred_dict["xs"][0, keep_inds]
+        # lengths = pred_dict["lengths"][0, keep_inds]
+        # anchor_params = pred_dict["anchor_params"][0, keep_inds]
         scores = softmax(pred_dict["cls_logits"][0])[:, 1]
         keep_inds = scores >= threshold
-        scores = scores[keep_inds]
+        scores = torch.reshape(scores[keep_inds], shape=[-1, 1])
         xs = pred_dict["xs"][0, keep_inds]
         lengths = pred_dict["lengths"][0, keep_inds]
         anchor_params = pred_dict["anchor_params"][0, keep_inds]
-        if xs.shape[0] == 0:
-            return [], []
+
+        # if xs.shape[0] == 0:
+        #     # return [], []
+        #     return [], [], [], []
 
         if self.test_cfg.use_nms:
             nms_anchor_params = anchor_params[..., :2].detach().clone()
@@ -277,6 +302,17 @@ class CLRerHead(nn.Module):
                 ],
                 dim=-1,
             )  # [N, 77]
+
+            """
+            nms_predictions.shape
+                torch.Size([9, 77])
+            scores.shape
+                torch.Size([9])
+            self.test_cfg.nms_thres
+                50
+            self.test_cfg.nms_topk
+                4
+            """
             keep, num_to_keep, _ = nms(
                 nms_predictions,
                 scores,
@@ -289,10 +325,52 @@ class CLRerHead(nn.Module):
             lengths = lengths[keep]
             anchor_params = anchor_params[keep]
 
-        lengths = torch.round(lengths * self.n_strips)
-        pred = self.predictions_to_lanes(xs, anchor_params, lengths, scores, as_lanes)
+        """
+        lengths:
+            torch.Size([9, 1])
+        self.n_strips:
+            71
 
-        return pred, scores
+        xs.shape
+            torch.Size([9, 72])
+        anchor_params.shape
+            torch.Size([9, 3])
+        lengths.shape
+            torch.Size([9, 1])
+        scores.shape
+            torch.Size([9])
+        as_lanes
+            False
+        """
+        lengths = torch.round(lengths * self.n_strips)
+        # pred = self.predictions_to_lanes(xs, anchor_params, lengths, scores, as_lanes)
+        """
+        len(lanes): 9
+
+        pred[0].shape
+        torch.Size([63, 2])
+        pred[1].shape
+        torch.Size([63, 2])
+        pred[2].shape
+        torch.Size([64, 2])
+        pred[3].shape
+        torch.Size([64, 2])
+        pred[4].shape
+        torch.Size([63, 2])
+        pred[5].shape
+        torch.Size([63, 2])
+        pred[6].shape
+        torch.Size([35, 2])
+        pred[7].shape
+        torch.Size([35, 2])
+        pred[8].shape
+        torch.Size([35, 2])
+
+        scores.shape
+            torch.Size([9])
+        """
+        # return pred, scores
+        return xs, anchor_params, lengths, scores
 
     def predictions_to_lanes(
         self, pred_xs, anchor_params, lengths, scores, as_lanes=True, extend_bottom=True
@@ -312,6 +390,20 @@ class CLRerHead(nn.Module):
                 or `Lane` objects, where N is the number of rows.
 
         B: batch size, Nl: number of lanes after NMS, Nr: num_points (rows).
+        """
+
+
+        """
+        pred_xs (xs.shape)
+            torch.Size([9, 72])
+        anchor_params.shape
+            torch.Size([9, 3])
+        lengths.shape
+            torch.Size([9, 1])
+        scores.shape
+            torch.Size([9])
+        as_lanes
+            False
         """
         prior_ys = self.prior_ys.to(pred_xs.device).double()
         lanes = []
@@ -367,9 +459,16 @@ class CLRerHead(nn.Module):
                 scores (torch.Tensor): Confidence scores of the lanes.
         """
         pred_dict = self(feats)
-        lanes, scores = self.get_lanes(pred_dict, as_lanes=self.test_cfg.as_lanes)
+        # lanes, scores = self.get_lanes(pred_dict, as_lanes=self.test_cfg.as_lanes)
+        xs, anchor_params, lengths, scores = self.get_lanes(pred_dict, as_lanes=self.test_cfg.as_lanes)
+        # result_dict = {
+        #     'lanes': lanes,
+        #     'scores': scores,
+        # }
         result_dict = {
-            'lanes': lanes,
+            'xs': xs,
+            'anchor_params': anchor_params,
+            'lengths': lengths,
             'scores': scores,
         }
         return result_dict
